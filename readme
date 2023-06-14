@@ -1,0 +1,178 @@
+version: 1.2.0
+
+description:
+   This app is driven by a data-model file that calls the ixNetworkDataModelConfig
+   library containing IxNetwork-Restpy API executables.
+   Requires an user input data-model file that describes            
+   how to configure IxNetwork.
+
+Requirements:
+   - IxNetwork Windows or Linux API server =>9.0.0
+   - pip install --target=/path/KeystackSystem/Apps/ixnetwork_restpy ixnetwork_restpy 
+   
+In your testcase yml files:
+
+   pythonScript: /Modules/IxNetworkDataModel/Scripts/<the_python_script_to_run>.py
+
+   configParametersFile: configs.yml
+
+   importAppLibraryPaths:
+      - /Apps/ixnetwork_restpy
+      - /Apps/IxNetworkDataModel
+      
+
+configFile sample (configs.yml):
+
+   ixNetworkApiServerIp: 192.168.28.10
+
+   # Below are for Linux API server only
+   username: admin
+   password: admin
+   apiKey: None
+   deleteSession: False
+
+   forceTakePortOwnership: True
+   releasePorts: False
+   restPort: None
+   logLevel: info
+
+   ports:
+     - name: Host1
+       port: 192.168.28.5, 1, 1
+       packetCapture:
+         enable: True
+         rxMode: captureAndMeasure
+         controlPlane: False
+         dataPlane: True
+         sliceSize: 80
+
+     - name: Host2
+       port: 192.168.28.5, 1, 2
+x       packetCapture:
+         enable: True
+         rxMode: captureAndMeasure
+         controlPlane: False
+         dataPlane: True
+         sliceSize: 80
+      
+   topologies:
+      - name: Host1
+        ports:
+          - Host1
+        deviceGroups:
+          - name: Host1
+            multiplier: 1
+            ethernet:
+              name: Host1
+            ipv4:
+              name: Host1
+              ipStartValue: 1.1.1.1
+              ipStepValue: 0.0.0.0
+              subnet: 255.255.255.0
+              ipGatewayStartValue: 1.1.1.2
+              ipGatewayStepValue: 0.0.0.0
+
+      - name: Host2
+        ports:
+          - Host2
+        deviceGroups:
+          - name: Host2
+            multiplier: 1
+            ethernet:
+              name: Host2
+            ipv4:
+              name: Host2
+              ipStartValue: 1.1.1.2
+              ipStepValue: 0.0.0.0
+              subnet: 255.255.255.0
+              ipGatewayStartValue: 1.1.1.1
+              ipGatewayStepValue: 0.0.0.0
+
+   trafficItems:
+     - name: Host1
+       enable: True
+       trafficType: raw
+       srcPortName: Host1
+       destPortName: Host2
+       biDirection: True
+       frameRate:
+         type: percentLineRate
+         rate: 50
+       transmissionControl:
+         # fixedFrameCount | continuous
+         type: fixedFrameCount
+         frameCount: 100
+       frameSize: 128
+       packetHeaders:
+         ethernet:
+           src:
+             valueType: increment
+             startValue: ngpfSrcMac
+             stepValue: 00:00:00:00:00:00
+             stepValue: 00:00:00:00:00:00
+             count: 1
+           dst:
+             valueType: increment
+             startValue: ngpfResolvedGatewayMac
+             stepValue: 00:00:00:00:00:01
+             count: 1
+         ipv4:
+           appendToStack: ethernet
+           src:
+             valueType: increment
+             startValue: 1.1.1.1
+             stepValue: 0.0.0.1
+             count: 1
+           dst:
+             valueType: increment
+             startValue: 1.1.1.2
+             stepValue: 0.0.0.1
+             count: 1
+         udp:
+           appendToStack: ipv4
+           dstPort:
+             startValue: 4791
+	   srcPort:
+             startValue: 1111
+
+script example:
+
+import sys, traceback
+
+from ixNetworkDataModelConfig import ConfigIxNetworkRestPy
+from keystackEnv import keystackObj
+
+dataModelYamlFile = keystackObj.configFile
+
+try:
+    mainObj = ConfigIxNetworkRestPy(dataModelFile=dataModelYamlFile,
+                                    sessionName=None, sessionId=None, apiKey=None, clearConfig=True,
+                                    logLevel='info', logFilename=None, keystackObj=keystackObj)
+
+    mainObj.ports.assignPorts()
+    mainObj.portCapture.configure()
+    mainObj.closeAllTabs()
+    mainObj.ngpf.configure()
+    mainObj.ngpf.startAllProtocols()
+    mainObj.ngpf.verifyProtocolsUp()
+    ngpfMacAddresses = mainObj.ngpf.getNgpfLearnedMacAddresses()
+    mainObj.trafficItem.configRawTrafficItems(ngpfMacAddresses=ngpfMacAddresses)
+    mainObj.trafficItem.generateAll()
+    mainObj.trafficItem.apply()
+    mainObj.portCapture.start()
+    mainObj.trafficItem.start()
+    mainObj.trafficItem.waitForTrafficCompletion(maxCounter=10)
+    mainObj.portCapture.stop()
+    mainObj.portCapture.getDataPlaneCaptureFile(writeCaptureToFile=False,
+                                                amountOfPacketsToWrite=5,
+                                                captureFileDestPath=keystackObj.moduleProperties['artifactsRepo'])
+
+    if mainObj.configs['releasePorts']:
+        mainObj.ports.releasePorts()
+
+    if mainObj.configs['deleteSession']:
+        mainObj.deleteSession()
+
+except Exception as errMsg:
+    if 'mainObj' in locals():
+        mainObj.logFailed(traceback.format_exc(None, errMsg))
