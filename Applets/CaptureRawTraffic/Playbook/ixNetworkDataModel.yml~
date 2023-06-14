@@ -1,0 +1,29 @@
+---
+globalSettings:
+    loginCredentialKey: regressionTest
+    abortModuleFailure: False
+    abortStageFailure: False
+    env: Samples/pythonSample
+    #autoSelectEnvGroup: envPoolGroup1
+
+stages:
+    Test:
+       enable: True
+       runModulesInParallel: False
+       abortModuleFailure: False
+
+       modules:
+         - /Modules/IxNetworkDataModel:
+            enable: True
+            abortModuleFailure: False
+            env: pythonSample
+            variables:
+               serverName: regressionServer
+               serverIp: 10.10.10.1
+            playlist:
+               - /Modules/IxNetworkDataModel/Testcases/captureRawTraffic.yml
+
+
+
+
+

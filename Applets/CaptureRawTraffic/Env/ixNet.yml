@@ -1,0 +1,15 @@
+---
+# Can this env be used in parallel with other Modules
+# Default = False
+parallelUsage: False
+
+ixNetworkApiServerIp: 192.168.28.10
+
+# Below are for Linux API server only
+username: admin
+password: admin
+
+ixChassis: 192.168.128.5
+ports:
+   - 1, 1
+   - 1, 2

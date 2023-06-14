@@ -1,0 +1,23 @@
+---
+globalSettings:
+    loginCredentialKey: None
+    abortModuleFailure: False
+    abortStageFailure: False
+
+stages:
+    Test:
+       enable: True
+       runModulesInParallel: False
+       abortModuleFailure: False
+
+       modules:
+         - /Modules/IxNetworkDataModel:
+            enable: True
+            env: ixNet
+            playlist:
+               - /Modules/IxNetworkDataModel/Testcases/captureRawTraffic.yml
+
+
+
+
+
