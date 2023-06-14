@@ -1,4 +1,4 @@
-version: 1.2.0
+version: 1.0.0
 
 description:
    This app is driven by a data-model file that calls the ixNetworkDataModelConfig
@@ -9,6 +9,7 @@ description:
 Requirements:
    - IxNetwork Windows or Linux API server =>9.0.0
    - pip install --target=/path/KeystackSystem/Apps/ixnetwork_restpy ixnetwork_restpy 
+   - Data-model input file
    
 In your testcase yml files:
 
