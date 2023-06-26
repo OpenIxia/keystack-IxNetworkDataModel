@@ -1,15 +1,23 @@
-version: 1.0.0
+version: 1.1.0
 
 description:
-   This app is driven by a data-model file that calls the ixNetworkDataModelConfig
-   library containing IxNetwork-Restpy API executables.
-   Requires an user input data-model file that describes            
-   how to configure IxNetwork.
+   This app is driven by user input data-model yaml config files.
+   It configures IxNetwork using the SDK ixnetwork_restpy python
+   package to execute IxNetwork ReST APIs.
 
 Requirements:
-   - IxNetwork Windows or Linux API server =>9.0.0
-   - pip install --target=/path/KeystackSystem/Apps/ixnetwork_restpy ixnetwork_restpy 
-   - Data-model input file
+   - Runs on Linux OS only.
+   - pip install requests, PyYaml
+   - data-model yml config file
+
+   Note: This ixNetworkDataModel package comes with ixnetwork_restpy.
+         It is inside the /Apps/IxNetworkDataModel/IxNetworkRestpy directory.
+
+   - For port capturing requirements:
+      - IxNetwork Wireshark installed
+      - Linux OS wireshark installed
+      - sudo chmod o+x /usr/bin/dumpcap (For redhat distributions)
+      - sudo chmod o+x /usr/sbin/dumpcap (For ubuntu distributions)
    
 In your testcase yml files:
 
@@ -18,8 +26,8 @@ In your testcase yml files:
    configParametersFile: configs.yml
 
    importAppLibraryPaths:
-      - /Apps/ixnetwork_restpy
-      - /Apps/IxNetworkDataModel
+      - /Apps/IxNetworkDataModel/src
+      - /Apps/IxNetworkDataModel/IxNetworkRestpy
       
 
 configFile sample (configs.yml):
@@ -40,6 +48,9 @@ configFile sample (configs.yml):
    ports:
      - name: Host1
        port: 192.168.28.5, 1, 1
+       #type: novusHundredGigLanFcoe
+       #enableAutoNegotiation: false
+       #ieeeL1Defaults: false
        packetCapture:
          enable: True
          rxMode: captureAndMeasure
@@ -49,7 +60,10 @@ configFile sample (configs.yml):
 
      - name: Host2
        port: 192.168.28.5, 1, 2
-x       packetCapture:
+       #type: novusHundredGigLanFcoe
+       #enableAutoNegotiation: false
+       #ieeeL1Defaults: false       
+       packetCapture:
          enable: True
          rxMode: captureAndMeasure
          controlPlane: False
@@ -140,13 +154,13 @@ script example:
 
 import sys, traceback
 
-from ixNetworkDataModelConfig import ConfigIxNetworkRestPy
+from ixNetworkDataModel import ConfigIxNetworkRestPy
 from keystackEnv import keystackObj
 
-dataModelYamlFile = keystackObj.configFile
+dataModelYamlFile = keystackObj.configParamsFileFullPath
 
 try:
-    mainObj = ConfigIxNetworkRestPy(dataModelFile=dataModelYamlFile,
+    mainObj = ConfigIxNetworkRestPy(dataModelFile=dataModelYamlFile, dataModelObj=None,
                                     sessionName=None, sessionId=None, apiKey=None, clearConfig=True,
                                     logLevel='info', logFilename=None, keystackObj=keystackObj)
 
@@ -168,10 +182,10 @@ try:
                                                 amountOfPacketsToWrite=5,
                                                 captureFileDestPath=keystackObj.moduleProperties['artifactsRepo'])
 
-    if mainObj.configs['releasePorts']:
+    if mainObj.configs.get('releasePorts', False):
         mainObj.ports.releasePorts()
-
-    if mainObj.configs['deleteSession']:
+    
+    if mainObj.configs.get('deleteSession', True):
         mainObj.deleteSession()
 
 except Exception as errMsg:

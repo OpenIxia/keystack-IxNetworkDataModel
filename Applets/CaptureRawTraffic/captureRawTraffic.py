@@ -1,17 +1,18 @@
 import sys, traceback
 
-from ixNetworkDataModelConfig import ConfigIxNetworkRestPy
+from ixNetworkDataModel import ConfigIxNetworkRestPy
 from keystackEnv import keystackObj
 
 dataModelYamlFile = keystackObj.configParamsFileFullPath
 
 try:
-    mainObj = ConfigIxNetworkRestPy(dataModelFile=dataModelYamlFile,
+    mainObj = ConfigIxNetworkRestPy(dataModelFile=dataModelYamlFile, dataModelObj=None,
                                     sessionName=None, sessionId=None, apiKey=None, clearConfig=True,
                                     logLevel='info', logFilename=None, keystackObj=keystackObj)
                                             
     mainObj.ports.assignPorts()
     mainObj.portCapture.configure()
+
     mainObj.closeAllTabs()
     mainObj.ngpf.configure()
     mainObj.ngpf.startAllProtocols()
@@ -24,18 +25,21 @@ try:
     mainObj.trafficItem.start()
     mainObj.trafficItem.waitForTrafficCompletion(maxCounter=10)
     mainObj.portCapture.stop()
-    mainObj.portCapture.getDataPlaneCaptureFile(writeCaptureToFile=False,
-                                                amountOfPacketsToWrite=5,
-                                                captureFileDestPath=keystackObj.moduleProperties['artifactsRepo'])
+    captureFilenames = mainObj.portCapture.getDataPlaneCaptureFile(
+        writeCaptureToFile=False,
+        amountOfPacketsToWrite=5,
+        captureFileDestPath=keystackObj.moduleProperties['artifactsRepo'])
 
-
-    if mainObj.configs['releasePorts']:
+    print(f'\ncaptureFilenames: {captureFilenames}')
+    
+    if mainObj.configs.get('releasePorts', False):
         mainObj.ports.releasePorts()
     
-    if mainObj.configs['deleteSession']:
+    if mainObj.configs.get('deleteSession', True):
         mainObj.deleteSession()
-
+    
 except Exception as errMsg:
+    print(f'\nError: {traceback.format_exc(None, errMsg)}')
     if 'mainObj' in locals():
         mainObj.logFailed(traceback.format_exc(None, errMsg))
 
