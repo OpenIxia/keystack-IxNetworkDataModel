@@ -126,7 +126,7 @@ class TrafficItem:
             # IPv4
             if endpoint['packetHeaders'].get('ipv4', None):
                 ipv4FieldObj = self.createPacketHeader(rawTrafficItemObj, packetHeaderToAdd='ipv4',
-                                                appendToStack=f'^{endpoint["packetHeaders"]["ipv4"]["appendToStack"]}$')
+                                                       appendToStack=f'^{endpoint["packetHeaders"]["ipv4"]["appendToStack"]}$')
                 ipv4SrcField = ipv4FieldObj.find(DisplayName='Source Address')
                 ipv4SrcField.ValueType = endpoint["packetHeaders"]["ipv4"]["src"]["valueType"]
                 ipv4SrcField.StartValue = endpoint["packetHeaders"]["ipv4"]["src"]["startValue"]
@@ -139,6 +139,12 @@ class TrafficItem:
                 ipv4DstField.StepValue = endpoint["packetHeaders"]["ipv4"]["dst"]["stepValue"]
                 ipv4DstField.CountValue = endpoint["packetHeaders"]["ipv4"]["dst"]["count"] 
 
+                if endpoint['packetHeaders']['ipv4'].get('ecn', None):
+                    # ECN uses field 9 (Unused field)
+                    ipv4EcnField = ipv4FieldObj.find()[10]
+                    ipv4EcnField.ActiveFieldChoice = True
+                    ipv4EcnField.SingleValue = endpoint["packetHeaders"]["ipv4"]["ecn"]
+                
             if endpoint['packetHeaders'].get('udp', None):
                 udpFieldObj = self.createPacketHeader(rawTrafficItemObj, packetHeaderToAdd='^udp$', appendToStack='ipv4')
                 udpSrcField = udpFieldObj.find(DisplayName='UDP-Source-Port')
@@ -156,7 +162,7 @@ class TrafficItem:
                 #    101 CRITIC/ECP, 110 Internetwork Control, 111 Network Control
                 ipv4PrecedenceField = ipv4FieldObj.find(DisplayName='Precedence')
                 ipv4PrecedenceField.ActiveFieldChoice = True
-                ipv4PrecedenceField.FieldValue = '011 Flash'
+                ipv4PrecedenceField.FieldValue = endpoint["packetHeaders"]["ipv4"]["precedence"]
 
                 # For IPv4 Raw priority: Field/3
                 #ipv4RawPriorityField = ipv4FieldObj.find(DisplayName='Raw priority')
